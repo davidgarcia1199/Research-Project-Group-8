@@ -1,0 +1,217 @@
+---
+title: "Research Project - Group 8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load packages/data, echo = TRUE}
+library(tidyverse)
+library(leaps)
+auto <- read.csv("Auto.csv")
+```
+
+```{r show, layout="l-body-outset"}
+library(knitr)
+head(auto)
+```
+
+## Diagnostics
+
+```{r cylinders, echo=TRUE}
+ggplot(auto, aes(cylinders)) + geom_histogram(bins = 5)
+```
+
+```{r mpg hist, echo=TRUE}
+ggplot(auto, aes(mpg)) + geom_histogram(bins = 10)
+```
+
+```{r displacement hist, echo = TRUE}
+ggplot(auto, aes(displacement)) + geom_histogram(bins = 10)
+```
+
+```{r weight hist, echo=TRUE}
+ggplot(auto, aes(weight)) + geom_histogram(bins = 10)
+```
+
+```{r acceleration hist, echo = TRUE}
+ggplot(auto, aes(acceleration)) + geom_histogram(bins = 12)
+```
+
+```{r year hist, echo = TRUE}
+ggplot(auto, aes(year)) + geom_histogram(bins = 12)
+```
+
+```{r origin hist, echo = TRUE}
+ggplot(auto, aes(origin)) + geom_histogram(bins = 3)
+```
+
+```{r}
+mydata <- auto[c("mpg", "cylinders", "displacement", "weight", "acceleration")]
+pairs(mydata, pch = 19, lower.panel = NULL)
+cor(mydata)
+```
+```{r}
+mean(auto$mpg, na.rm = TRUE)
+sd(auto$mpg, na.rm = TRUE)
+```
+
+```{r}
+mean(auto$cylinders, na.rm = TRUE)
+sd(auto$cylinders, na.rm = TRUE)
+```
+
+```{r}
+mean(auto$displacement, na.rm = TRUE)
+sd(auto$displacement, na.rm = TRUE)
+```
+
+```{r}
+mean(auto$weight, na.rm = TRUE)
+sd(auto$weight, na.rm = TRUE)
+```
+```{r}
+mean(auto$acceleration, na.rm = TRUE)
+sd(auto$acceleration, na.rm = TRUE)
+```
+
+```{r}
+reg <- lm(mpg~displacement+weight+acceleration, mydata)
+coefficients(reg)
+```
+
+```{r}
+mydata$predicted <- predict(reg)
+mydata$resids <- residuals(reg)
+
+ggplot(mydata, aes(x = predicted, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus fitted values", x = "Fitted values", y = "Residuals")
+ggplot(mydata, aes(x = cylinders, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") +
+  labs(title = "Residuals versus predictor of cylinders", x = "cylinders", y = "Residuals")
+ggplot(mydata, aes(x = displacement, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of displacement", x = "displacement", y = "Residuals")
+ggplot(mydata, aes(x = weight, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of weight", x = "weight", y = "Residuals")
+ggplot(mydata, aes(x = acceleration, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of acceleration", x = "acceleration", y = "Residuals")
+```
+
+```{r}
+ggplot(mydata, aes(sample = resids)) + stat_qq() + stat_qq_line() +
+  labs(title = "Normal probability plot", x = "Theoretical percentiles", y = "Sample percentiles")
+```
+```{r, log_transformation}
+#adding a log transformation to the response variable in order to meet the assumptions
+mydata <- mydata %>%mutate(lnmpg =log(mpg))
+logreg <- lm(lnmpg~cylinders+displacement+weight+acceleration, mydata)
+summary(logreg)
+mydata$predicted <- predict(logreg)
+mydata$resids <- residuals(logreg)
+ggplot(mydata, aes(x = predicted, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus fitted values", x = "Fitted values", y = "Residuals")
+
+ggplot(mydata, aes(sample = resids)) + stat_qq() + stat_qq_line() + labs(title ="Normal probability plot for forward selection",
+       x = "Theoretical percentiles", y = "Sample percentiles")
+
+##doing log transformation gets rid of the unequal variances and the assumptions are met.
+
+ggplot(mydata, aes(x = cylinders, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") +
+  labs(title = "Residuals versus predictor of cylinders", x = "cylinders", y = "Residuals")
+ggplot(mydata, aes(x = displacement, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of displacement", x = "displacement", y = "Residuals")
+ggplot(mydata, aes(x = weight, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of weight", x = "weight", y = "Residuals")
+ggplot(mydata, aes(x = acceleration, y = resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") + 
+  labs(title = "Residuals versus predictor of acceleration", x = "acceleration", y = "Residuals")
+```
+
+## Covariance Matrix
+
+```{r matrix}
+library(psych)
+pairs.panels(auto[c("mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "year")], method = "pearson", hist.col = "#00AFBB", smooth = FALSE, density = FALSE, ellipses = FALSE)
+```
+
+The correlation matrix shows that most of the predictors have a moderate to strong relation to mpg, especially number of cylinders, displacement, weight, and year. This means that we should probably focus on these predictors in any analysis we run. Additionally, there is are very strong correlations between cylinders, displacement, and weight in each of their covariance analyses. Many other variables have slight indication of correlation but not enough to be likely to cause any serious problems in our analyses. 
+
+There are also clear non-linear relationships between mpg and displacement, mpg and weight, and mpg and acceleration. Any correlations between number of cylinders or year and the other predictors are difficult to interpret due to the fact that the values of these predictors fall on discrete values.
+
+## Confidence Interval 
+
+What is the confidence interval for the mpg of a car with 8 cylinders, a displacement of 307, a horsepower of 130, a weight of 3504 lbs, an acceleration of 12, and a year of 70?
+
+```{r}
+new.car <- data.frame(cylinders = 8, displacement = 307, horsepower = 130, weight = 3504, acceleration = 12, year = 70)
+predict(reg, newdata = new.car, interval = "confidence")
+```
+
+It is shown that the 95% confidence interval for a car that is observed with 8 cylinders, a displacement of 307, a horsepower of 130, a weight of 3504 lbs, an acceleration of 12, and a year of 70 is (15.08452, 16.01818). This means that we are 95% confident that a car with the properties previously mentioned will have a mpg value between 15.08452 and 16.01818.
+
+```{r, stepwise_model_log}
+#fitting stepwise function
+FitStart <- lm(lnmpg ~ 1, mydata)
+step(FitStart, direction = "forward", scope = formula(reg))
+#reg has all the predictors fitting the model from forward selection
+regfor <- lm(lnmpg ~ weight + acceleration + displacement, mydata)
+mydata$resids <- residuals(regfor)
+mydata$predicted <- predict(regfor)
+ggplot(mydata, aes(x=predicted, y=resids)) + geom_point() + geom_hline(yintercept = 0, color = "blue") +
+  labs(title ="Residuals versus Fitted values for forward selection",
+     x = "Fitted values", y = "Residuals")
+ggplot(mydata, aes(sample = resids)) + stat_qq() + stat_qq_line() + labs(title ="Normal probability plot for forward selection",
+       x = "Theoretical percentiles", y = "Sample percentiles")
+```
+
+```{r, subset_model_log}
+models <- regsubsets(lnmpg ~ weight + acceleration + displacement, mydata, nvmax = 3)
+
+regsubset <- lm(lnmpg ~ weight + displacement + acceleration, mydata)
+
+summary(models)
+models.sum <- summary(models)
+#fitting the model for subset selection
+mydata$resids <- residuals(regsubset)
+mydata$predicted <- predict(regsubset)
+ggplot(mydata, aes(x=predicted, y=resids)) + geom_point() + geom_hline(yintercept=0, color = "blue") +
+  labs(title ="Residuals versus Fitted values for best subset selection",
+     x = "Fitted values", y = "Residuals")
+ggplot(mydata, aes(sample = resids)) + stat_qq() + stat_qq_line() + labs(title ="Normal probability plot for best subset selection",
+       x = "Theoretical percentiles", y = "Sample percentiles")
+
+par(mfrow = c(2,2)) # SSE
+plot(models.sum$rss, xlab = "Number of predictors", ylab = "SSE", type = "l")
+# R2
+plot(models.sum$adjr2, xlab = "Number of predictors", ylab = "Adjusted RSq" , type = "l")
+# Mallow's Cp
+plot(models.sum$cp, xlab = "Number of predictors", ylab = "Cp", type = "l") # BIC
+plot(models.sum$bic, xlab = "Number of predictors", ylab = "BIC", type = "l
+")
+##you can see that 3 predictors is the best for the model
+```
+The best model is the subset model with three predictors since the metrics are the optimal for this model. The adjusted model, which uses acceleration, displacement, and  now meets the equal variance, linearity, and normality assumptions.
+
+## Multicollinearity
+
+```{r VIF}
+library(car)
+vif(regsubset)
+summary(regsubset)
+```
+
+The VIF values for the predictors displacement and weight are greater than 5 and thus indicate that they should be investigated for multicollinearity.
+
+```{r, center predictors}
+mydata <- mydata %>%
+  mutate(displacement.c = displacement - mean(displacement),
+         weight.c = weight - mean(weight))
+logreg_centered <- lm(lnmpg ~ displacement.c + weight.c + acceleration, mydata)
+summary(logreg_centered)
+vif(logreg_centered)
+```
+It appears that centering the variables has no effect on the VIF values given in the model. Since the VIF values for both of these variables is less than 10 we can assume that our model will not be drastically affected by multicollinearity. 
+
+## Conclusion
+
+Taking all of the above evidence into consideration, we conclude that the best model uses weight, acceleration, and displacement to predict ln(mpg). 
